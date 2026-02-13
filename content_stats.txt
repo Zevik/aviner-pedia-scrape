@@ -1,0 +1,4 @@
+Total: 7864
+With content: 0
+Empty: 7864
+Percent with content: 0.0%

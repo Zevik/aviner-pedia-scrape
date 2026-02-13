@@ -211,6 +211,22 @@ def build_database_from_xml(xml_path, pages_folder, db_path='aviner_database.db'
     # MediaWiki namespace
     ns = {'mw': 'http://www.mediawiki.org/xml/export-0.11/'}
 
+    # יצירת מיפוי של קבצי HTML - מקודדים ולא מקודדים
+    logging.info("🗂️ יוצר מיפוי של קבצי HTML...")
+    from urllib.parse import unquote
+    html_files_map = {}
+    pages_dir = Path(pages_folder)
+    for file_path in pages_dir.glob('*.html'):
+        # נסיון לפענח את שם הקובץ
+        try:
+            decoded_name = unquote(file_path.name)
+            html_files_map[decoded_name] = file_path
+        except:
+            pass
+        # גם שם לא מקודד
+        html_files_map[file_path.name] = file_path
+    logging.info(f"📁 נמצאו {len(html_files_map)} קבצי HTML")
+
     # אוספים מידע על קטגוריות ותתי-קטגוריות
     categories_dict = {}
     subcategories_dict = {}
@@ -261,11 +277,22 @@ def build_database_from_xml(xml_path, pages_folder, db_path='aviner_database.db'
         url_slug = re.sub(r'[^\w\s-]', '', title).strip().replace(' ', '_')
 
         # קריאת תוכן מקובץ HTML אם קיים
-        html_path = Path(pages_folder) / filename
         content = ""
         content_length = 0
 
-        if html_path.exists():
+        # חיפוש הקובץ במיפוי - נסיון 1: שם מדויק
+        html_path = html_files_map.get(filename)
+
+        # נסיון 2: חיפוש גמיש - הכותרת עם סוגריים
+        if not html_path or not html_path.exists():
+            # ננסה למצוא קובץ שמתחיל בכותרת הזאת
+            title_without_ext = title
+            for mapped_filename, mapped_path in html_files_map.items():
+                if mapped_filename.startswith(title_without_ext):
+                    html_path = mapped_path
+                    break
+
+        if html_path and html_path.exists():
             try:
                 with open(html_path, 'r', encoding='utf-8') as f:
                     html_content = f.read()
@@ -275,7 +302,7 @@ def build_database_from_xml(xml_path, pages_folder, db_path='aviner_database.db'
                     content = content_div.get_text(separator='\n', strip=True)
                     content_length = len(content)
             except Exception as e:
-                logging.warning(f"⚠️ שגיאה בקריאת {filename}: {e}")
+                pass  # התעלמות משגיאות קריאה
 
         articles_data.append({
             'title': title,
