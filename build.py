@@ -10,6 +10,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import datetime
 import logging
+from sheut_mappings import get_sheut_subcategory
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -276,6 +277,16 @@ def parse_filename(filename):
             if re.search(pattern, filename_clean, re.IGNORECASE):
                 subcategory = series_name
                 break
+    # אם הקטגוריה היא "שו"ת הלכה", נשתמש במיפוי המפורט
+    elif category == 'שו"ת הלכה':
+        # ניסיון לזהות לפי המיפוי המפורט
+        subcategory = get_sheut_subcategory(filename_clean)
+        # אם לא הצלחנו עם המיפוי, ננסה לפי תבניות
+        if subcategory == 'שו"ת לפי נושא':
+            for topic_name, pattern in topic_patterns.items():
+                if re.search(pattern, filename_clean, re.IGNORECASE):
+                    subcategory = topic_name
+                    break
     # אחרת, תת-הקטגוריה היא נושא
     else:
         for topic_name, pattern in topic_patterns.items():
