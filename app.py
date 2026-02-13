@@ -31,18 +31,24 @@ def index():
 
 @app.route('/section/<section_name>')
 def section(section_name):
+    """Show subcategories within a section"""
     conn = get_db_connection()
-    articles = conn.execute("""
-        SELECT title, url_slug, section 
-        FROM articles 
-        WHERE section = ? 
-        LIMIT 100
+
+    # Get subcategories for this section (category)
+    subcategories = conn.execute("""
+        SELECT s.name, s.article_count
+        FROM subcategories s
+        JOIN categories c ON s.category_id = c.id
+        WHERE c.name = ?
+        ORDER BY s.article_count DESC
     """, (section_name,)).fetchall()
+
     conn.close()
-    return render_template('category.html', articles=articles, cat_name=section_name)
+    return render_template('section.html', section_name=section_name, subcategories=subcategories)
 
 @app.route('/category/<cat_name>')
 def category(cat_name):
+    """Legacy route - redirects to section"""
     conn = get_db_connection()
     articles = conn.execute("""
         SELECT a.title, a.url_slug FROM articles a
@@ -51,6 +57,21 @@ def category(cat_name):
     """, (cat_name,)).fetchall()
     conn.close()
     return render_template('category.html', articles=articles, cat_name=cat_name)
+
+@app.route('/subcategory/<section_name>/<subcat_name>')
+def subcategory(section_name, subcat_name):
+    """Show articles within a subcategory"""
+    conn = get_db_connection()
+    articles = conn.execute("""
+        SELECT a.title, a.url_slug
+        FROM articles a
+        JOIN categories c ON a.category_id = c.id
+        JOIN subcategories s ON a.subcategory_id = s.id
+        WHERE c.name = ? AND s.name = ?
+        ORDER BY a.title
+    """, (section_name, subcat_name)).fetchall()
+    conn.close()
+    return render_template('category.html', articles=articles, cat_name=f"{section_name} - {subcat_name}")
 
 @app.route('/article/<slug>')
 def article(slug):

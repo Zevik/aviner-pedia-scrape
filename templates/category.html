@@ -3,11 +3,14 @@
 {% block title %}{{ cat_name }}{% endblock %}
 
 {% block content %}
-<nav class="breadcrumb">
-    <a href="/">בית</a> &raquo; {{ cat_name }}
-</nav>
+<div style="margin-bottom: 20px;">
+    <a href="/" style="color: #3498db; text-decoration: none;">← חזרה לדף הבית</a>
+</div>
 
 <h1>{{ cat_name }}</h1>
+
+{% if articles %}
+<p style="color: #666; margin-bottom: 20px;">נמצאו {{ articles|length }} פריטים</p>
 <ul class="article-list">
     {% for article in articles %}
     <li>
@@ -15,4 +18,7 @@
     </li>
     {% endfor %}
 </ul>
+{% else %}
+<p>לא נמצאו פריטים בקטגוריה זו.</p>
+{% endif %}
 {% endblock %}
