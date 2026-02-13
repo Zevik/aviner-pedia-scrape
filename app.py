@@ -55,11 +55,24 @@ def category(cat_name):
 @app.route('/article/<slug>')
 def article(slug):
     conn = get_db_connection()
-    page = conn.execute("SELECT title, content, video_id FROM articles WHERE url_slug = ?", (slug,)).fetchone()
+    page = conn.execute("""
+        SELECT a.title, a.content, a.video_id, a.section,
+               c.name as category, s.name as subcategory
+        FROM articles a
+        LEFT JOIN categories c ON a.category_id = c.id
+        LEFT JOIN subcategories s ON a.subcategory_id = s.id
+        WHERE a.url_slug = ?
+    """, (slug,)).fetchone()
     conn.close()
     if page is None:
         abort(404)
-    return render_template('article.html', title=page['title'], content=page['content'], video_id=page['video_id'])
+    return render_template('article.html',
+                         title=page['title'],
+                         content=page['content'],
+                         video_id=page['video_id'],
+                         section=page['section'],
+                         category=page['category'],
+                         subcategory=page['subcategory'])
 
 @app.route('/search')
 def search():

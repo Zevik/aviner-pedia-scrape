@@ -5,6 +5,29 @@
 {% block content %}
 <div class="content-page">
     <h1>{{ title }}</h1>
+
+    {% if section or category %}
+    <div class="article-meta" style="margin-bottom: 20px; padding: 10px; background: #f5f5f5; border-radius: 5px;">
+        {% if section %}
+        <span class="meta-item" style="margin-left: 15px;">
+            <strong>סוג:</strong>
+            <a href="/section/{{ section }}" style="color: #0066cc;">{{ section }}</a>
+        </span>
+        {% endif %}
+        {% if category and category != 'כללי' %}
+        <span class="meta-item" style="margin-left: 15px;">
+            <strong>קטגוריה:</strong>
+            <a href="/category/{{ category }}" style="color: #0066cc;">{{ category }}</a>
+        </span>
+        {% endif %}
+        {% if subcategory and subcategory != 'כללי' and subcategory != category %}
+        <span class="meta-item" style="margin-left: 15px;">
+            <strong>תת-קטגוריה:</strong> {{ subcategory }}
+        </span>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <div class="article-content">
         {% if video_id %}
         <div class="video-container">
