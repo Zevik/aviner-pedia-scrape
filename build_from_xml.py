@@ -285,12 +285,33 @@ def build_database_from_xml(xml_path, pages_folder, db_path='aviner_database.db'
 
         # נסיון 2: חיפוש גמיש - הכותרת עם סוגריים
         if not html_path or not html_path.exists():
-            # ננסה למצוא קובץ שמתחיל בכותרת הזאת
-            title_without_ext = title
-            for mapped_filename, mapped_path in html_files_map.items():
-                if mapped_filename.startswith(title_without_ext):
-                    html_path = mapped_path
+            # ננסה למצוא קובץ שמכיל את הכותרת הזאת
+            # הקבצים נראים כך: "כותרת (מאמר).html" או "כותרת (וידאו).html"
+            title_without_ext = title.strip()
+
+            # חיפוש מדויק עם סוגריים
+            possible_names = [
+                f"{title_without_ext} (מאמר).html",
+                f"{title_without_ext} (וידאו).html",
+                f"{title_without_ext} (שו\"ת).html",
+                f"{title_without_ext} (שו_ת).html",
+                f"{title_without_ext} (סדרה).html",
+                f"{title_without_ext} (שיעור).html",
+            ]
+
+            for possible_name in possible_names:
+                if possible_name in html_files_map:
+                    html_path = html_files_map[possible_name]
                     break
+
+            # אם עדיין לא מצאנו, ננסה התחלה
+            if not html_path or not html_path.exists():
+                for mapped_filename, mapped_path in html_files_map.items():
+                    # התאמה: הקובץ מתחיל בכותרת ואחריו רווח או סוגר
+                    if mapped_filename.startswith(title_without_ext + " (") or \
+                       mapped_filename == title_without_ext + ".html":
+                        html_path = mapped_path
+                        break
 
         if html_path and html_path.exists():
             try:
