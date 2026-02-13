@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, abort
+from flask import Flask, render_template, request, abort, jsonify
 import sqlite3
 import re
 
@@ -100,6 +100,34 @@ def search():
         
     conn.close()
     return render_template('search.html', results=results, query=query)
+
+@app.route('/api/autocomplete')
+def autocomplete():
+    """API endpoint for search autocomplete"""
+    query = request.args.get('q', '').strip()
+    if not query or len(query) < 2:
+        return jsonify([])
+
+    conn = get_db_connection()
+    # Search in titles only for fast autocomplete
+    results = conn.execute("""
+        SELECT title, url_slug
+        FROM articles
+        WHERE title LIKE ?
+        ORDER BY
+            CASE
+                WHEN title LIKE ? THEN 1
+                ELSE 2
+            END,
+            length(title)
+        LIMIT 10
+    """, (f"%{query}%", f"{query}%")).fetchall()
+
+    conn.close()
+
+    # Convert to JSON-friendly format
+    suggestions = [{'title': row['title'], 'slug': row['url_slug']} for row in results]
+    return jsonify(suggestions)
 
 if __name__ == '__main__':
     app.run(debug=True, port=5000)

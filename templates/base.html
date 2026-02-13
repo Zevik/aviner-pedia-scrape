@@ -8,6 +8,42 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Assistant:wght@400;700&display=swap"
         rel="stylesheet">
+    <style>
+        .search-autocomplete {
+            position: relative;
+            flex: 1;
+            max-width: 400px;
+        }
+        .autocomplete-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ddd;
+            border-top: none;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        .autocomplete-results.active {
+            display: block;
+        }
+        .autocomplete-item {
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+            text-align: right;
+        }
+        .autocomplete-item:hover {
+            background: #f5f5f5;
+        }
+        .autocomplete-item:last-child {
+            border-bottom: none;
+        }
+    </style>
 </head>
 
 <body>
@@ -20,10 +56,14 @@
                     <a href="/section/וידאו">וידאו</a>
                     <a href="/section/שו%22ת">שו"ת</a>
                 </div>
-                <form action="/search" method="get" class="search-form">
-                    <input type="text" name="q" placeholder="חיפוש באבינרפדיה..." value="{{ query|default('') }}">
-                    <button type="submit">חיפוש</button>
-                </form>
+                <div class="search-autocomplete">
+                    <form action="/search" method="get" class="search-form" id="searchForm">
+                        <input type="text" name="q" id="searchInput" placeholder="חיפוש באבינרפדיה..."
+                               value="{{ query|default('') }}" autocomplete="off">
+                        <button type="submit">חיפוש</button>
+                    </form>
+                    <div class="autocomplete-results" id="autocompleteResults"></div>
+                </div>
             </div>
         </nav>
     </header>
@@ -37,6 +77,96 @@
             <p>&copy; {{ now.year if now else '2024' }} אבינרפדיה. כל הזכויות שמורות.</p>
         </div>
     </footer>
+
+    <script>
+        // Autocomplete functionality
+        const searchInput = document.getElementById('searchInput');
+        const autocompleteResults = document.getElementById('autocompleteResults');
+        let debounceTimer;
+
+        searchInput.addEventListener('input', function() {
+            const query = this.value.trim();
+
+            // Clear previous timer
+            clearTimeout(debounceTimer);
+
+            // Hide results if query is too short
+            if (query.length < 2) {
+                autocompleteResults.classList.remove('active');
+                return;
+            }
+
+            // Debounce: wait 300ms after user stops typing
+            debounceTimer = setTimeout(() => {
+                fetch(`/api/autocomplete?q=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.length > 0) {
+                            autocompleteResults.innerHTML = data.map(item =>
+                                `<div class="autocomplete-item" data-slug="${item.slug}">${item.title}</div>`
+                            ).join('');
+                            autocompleteResults.classList.add('active');
+                        } else {
+                            autocompleteResults.classList.remove('active');
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Autocomplete error:', err);
+                        autocompleteResults.classList.remove('active');
+                    });
+            }, 300);
+        });
+
+        // Handle clicking on autocomplete results
+        autocompleteResults.addEventListener('click', function(e) {
+            if (e.target.classList.contains('autocomplete-item')) {
+                const slug = e.target.getAttribute('data-slug');
+                window.location.href = `/article/${slug}`;
+            }
+        });
+
+        // Hide autocomplete when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.search-autocomplete')) {
+                autocompleteResults.classList.remove('active');
+            }
+        });
+
+        // Handle keyboard navigation (Enter, Escape, Arrow keys)
+        searchInput.addEventListener('keydown', function(e) {
+            const items = autocompleteResults.querySelectorAll('.autocomplete-item');
+            const activeItem = autocompleteResults.querySelector('.autocomplete-item.selected');
+
+            if (e.key === 'Escape') {
+                autocompleteResults.classList.remove('active');
+            } else if (e.key === 'ArrowDown' && items.length > 0) {
+                e.preventDefault();
+                if (!activeItem) {
+                    items[0].classList.add('selected');
+                    items[0].style.background = '#f5f5f5';
+                } else {
+                    activeItem.classList.remove('selected');
+                    activeItem.style.background = '';
+                    const next = activeItem.nextElementSibling || items[0];
+                    next.classList.add('selected');
+                    next.style.background = '#f5f5f5';
+                }
+            } else if (e.key === 'ArrowUp' && items.length > 0) {
+                e.preventDefault();
+                if (activeItem) {
+                    activeItem.classList.remove('selected');
+                    activeItem.style.background = '';
+                    const prev = activeItem.previousElementSibling || items[items.length - 1];
+                    prev.classList.add('selected');
+                    prev.style.background = '#f5f5f5';
+                }
+            } else if (e.key === 'Enter' && activeItem) {
+                e.preventDefault();
+                const slug = activeItem.getAttribute('data-slug');
+                window.location.href = `/article/${slug}`;
+            }
+        });
+    </script>
 </body>
 
 </html>

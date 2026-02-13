@@ -75,32 +75,15 @@ def create_aviner_database(html_folder_path, overwrite_db=False):
     for i, file_path in enumerate(html_files, 1):
         if i % 500 == 0:
             logging.info(f"🔄 עיבוד קובץ {i}/{len(html_files)}")
-        
+
         filename = file_path.name
         title = filename.replace('.html', '').strip()
+
+        # Parse to get category and subcategory
+        # Now category will be the main section (וידאו/מאמרים/שו"ת/סדרות)
+        # And subcategory will be the topic/series name
         category, subcategory = parse_filename(filename)
-        
-        # Extract Section (Main Category) from filename - looking inside parentheses
-        section = 'כללי'
-        # Check for content in parentheses first
-        paren_match = re.search(r'\(([^)]+)\)', filename)
-        if paren_match:
-            paren_content = paren_match.group(1)
-            if 'וידאו' in paren_content:
-                section = 'וידאו'
-            elif 'מאמר' in paren_content:
-                section = 'מאמרים'
-            elif 'שו"ת' in paren_content or 'שו_ת' in paren_content:
-                section = 'שו"ת'
-            elif 'סדרה' in paren_content:
-                section = 'סדרות'
-        # Fallback to checking entire filename if no parentheses found
-        elif 'וידאו' in filename:
-            section = 'וידאו'
-        elif 'מאמר' in filename:
-            section = 'מאמרים'
-        elif 'שו"ת' in filename or 'שו_ת' in filename:
-            section = 'שו"ת'
+        section = category  # Section is now the same as category
         
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
@@ -213,50 +196,88 @@ def create_aviner_database(html_folder_path, overwrite_db=False):
     return db_path
 
 def parse_filename(filename):
-    """חולץ קטגוריה ותת-קטגוריה משם קובץ (משופר עם regex)"""
-    category_patterns = {
-        # סדרות ספרים - בסדר חשיבות (מהספציפי לכללי)
+    """
+    חולץ קטגוריה ותת-קטגוריה משם קובץ
+
+    קטגוריה = המבנה הראשי (וידאו/מאמרים/שו"ת הלכה/סדרות)
+    תת-קטגוריה = נושא או שם סדרה תחת הקטגוריה
+    """
+    filename_clean = filename.replace('.html', '').strip()
+
+    # תבניות לזיהוי סדרות
+    series_patterns = {
         'אורות הקודש': r'אורות\s+הקודש',
         'אורות התשובה': r'אורות\s+התשובה',
         'ספר אורות': r'ספר\s+אורות',
-        'אורות': r'אורות(?!\s+הקודש|\s+התשובה)',  # אורות שאינו הקודש/התשובה
+        'אורות': r'אורות(?!\s+הקודש|\s+התשובה)',
         'עין איה': r'עין\s+איה',
         'כוזרי': r'כוזרי',
         'שמונה פרקים לרמבם': r'שמונה\s+פרקים|רמב"?ם',
         'תפארת ישראל - מהר"ל': r'תפארת\s+ישראל|מהר"?ל',
         'נתיב התורה': r'נתיב\s+התורה',
-        # ערוצים ופלטפורמות
         'ספריית חוה': r'ספריית\s+חוה',
         'כי מציון': r'כי\s+מציון',
         'בלוג הוידאו של הרב אבינר': r'בלוג\s+הוידאו|בלוג.*וידאו',
         'ישיבת עטרת ירושלים': r'עטרת\s+ירושלים|ישיבת\s+עטרת',
         'מאמרי הרב שלמה אבינר': r'מאמרי\s+הרב|שלמה\s+אבינר',
         'ערוץ מאיר': r'ערוץ\s+מאיר',
-        # קטגוריות הלכתיות
-        'אבן העזר': r'אבן\s+העזר',
-        'אורח חיים': r'אורח\s+חיים',
-        'יורה דעה': r'יורה\s+דעה|יורה_דעה',
-        'חושן משפט': r'חושן\s+משפט|חושן_משפט',
-        'הלכה': r'הלכה',
-        'שו"ת': r'שו"?ת',
-        'מאמרים': r'מאמרים',
-        # נושאים כלליים
-        'אמונה': r'אמונה',
-        'זוגיות': r'זוגיות|משפחה',
-        'חינוך': r'חינוך',
-        'מדינה': r'מדינה|ציונות|צבא|ארץ\s+ישראל',
-        'מוסר': r'מוסר|מידות',
-        'מועדים': r'מועדים|חגים|שבת|פסח|סוכות'
     }
-    filename_clean = filename.replace('.html', '').strip()
-    
-    for category, pattern in category_patterns.items():
-        if re.search(pattern, filename_clean, re.IGNORECASE):
-            parts = re.split(r'\s*-\s*|\s*\(\s*|\s*\)\s*', filename_clean)
-            subcategory = parts[-1].strip() if len(parts) > 1 else 'כללי'
-            return category, subcategory
-    
-    return 'כללי', 'כללי'
+
+    # תבניות לזיהוי נושאים
+    topic_patterns = {
+        'אמונה': r'אמונה',
+        'הלכה': r'הלכה',
+        'זוגיות ומשפחה': r'זוגיות|משפחה',
+        'חינוך': r'חינוך',
+        'מדינת ישראל': r'מדינה|ציונות|צבא|ארץ\s+ישראל',
+        'מוסר ומידות': r'מוסר|מידות',
+        'מועדים': r'מועדים|חגים|שבת|פסח|סוכות',
+        'מיוחדים': r'מיוחדים',
+        'תורה': r'תורה',
+        'תפילה': r'תפילה',
+        'שו"ת לפי נושא': r'שו"?ת.*נושא',
+        'שו"ת סמס': r'סמ"?ס|SMS',
+    }
+
+    # שלב 1: קביעת קטגוריה ראשית לפי הסוגריים
+    category = 'כללי'
+    subcategory = 'כללי'
+
+    # בדיקה בתוך סוגריים קודם
+    paren_match = re.search(r'\(([^)]+)\)', filename)
+    if paren_match:
+        paren_content = paren_match.group(1)
+        if 'וידאו' in paren_content:
+            category = 'וידאו'
+        elif 'מאמר' in paren_content:
+            category = 'מאמרים'
+        elif 'שו"ת' in paren_content or 'שו_ת' in paren_content:
+            category = 'שו"ת הלכה'
+        elif 'סדרה' in paren_content:
+            category = 'סדרות'
+    # נסיעה לשם הקובץ אם לא מצאנו בסוגריים
+    elif 'וידאו' in filename:
+        category = 'וידאו'
+    elif 'מאמר' in filename:
+        category = 'מאמרים'
+    elif 'שו"ת' in filename or 'שו_ת' in filename:
+        category = 'שו"ת הלכה'
+
+    # שלב 2: קביעת תת-קטגוריה
+    # אם הקטגוריה היא "סדרות", תת-הקטגוריה תהיה שם הסדרה
+    if category == 'סדרות':
+        for series_name, pattern in series_patterns.items():
+            if re.search(pattern, filename_clean, re.IGNORECASE):
+                subcategory = series_name
+                break
+    # אחרת, תת-הקטגוריה היא נושא
+    else:
+        for topic_name, pattern in topic_patterns.items():
+            if re.search(pattern, filename_clean, re.IGNORECASE):
+                subcategory = topic_name
+                break
+
+    return category, subcategory
 
 if __name__ == "__main__":
     folder_path = "./pages"  # ← Updated to the new sub-folder
