@@ -80,13 +80,26 @@ def create_aviner_database(html_folder_path, overwrite_db=False):
         title = filename.replace('.html', '').strip()
         category, subcategory = parse_filename(filename)
         
-        # Extract Section (Main Category) from filename
+        # Extract Section (Main Category) from filename - looking inside parentheses
         section = 'כללי'
-        if 'וידאו' in filename:
+        # Check for content in parentheses first
+        paren_match = re.search(r'\(([^)]+)\)', filename)
+        if paren_match:
+            paren_content = paren_match.group(1)
+            if 'וידאו' in paren_content:
+                section = 'וידאו'
+            elif 'מאמר' in paren_content:
+                section = 'מאמרים'
+            elif 'שו"ת' in paren_content or 'שו_ת' in paren_content:
+                section = 'שו"ת'
+            elif 'סדרה' in paren_content:
+                section = 'סדרות'
+        # Fallback to checking entire filename if no parentheses found
+        elif 'וידאו' in filename:
             section = 'וידאו'
         elif 'מאמר' in filename:
             section = 'מאמרים'
-        elif 'שו"ת' in filename or 'שות' in filename:
+        elif 'שו"ת' in filename or 'שו_ת' in filename:
             section = 'שו"ת'
         
         try:
