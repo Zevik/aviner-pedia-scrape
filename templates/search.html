@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}תוצאות חיפוש עבור "{{ query }}"{% endblock %}
+
+{% block content %}
+<h1>תוצאות חיפוש עבור "{{ query }}"</h1>
+
+{% if results %}
+<ul class="article-list">
+    {% for result in results %}
+    <li>
+        <a href="/article/{{ result.url_slug }}">{{ result.title }}</a>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p>לא נמצאו תוצאות עבור החיפוש שלך.</p>
+{% endif %}
+{% endblock %}

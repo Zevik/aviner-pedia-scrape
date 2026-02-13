@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{% endblock %} - אבינרפדיה</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&family=Assistant:wght@400;700&display=swap"
+        rel="stylesheet">
+</head>
+
+<body>
+    <header>
+        <nav>
+            <div class="container">
+                <a href="/" class="logo">אבינרפדיה</a>
+                <div class="nav-links">
+                    <a href="/section/מאמרים">מאמרים</a>
+                    <a href="/section/וידאו">וידאו</a>
+                    <a href="/section/שו%22ת">שו"ת</a>
+                </div>
+                <form action="/search" method="get" class="search-form">
+                    <input type="text" name="q" placeholder="חיפוש באבינרפדיה..." value="{{ query|default('') }}">
+                    <button type="submit">חיפוש</button>
+                </form>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>&copy; {{ now.year if now else '2024' }} אבינרפדיה. כל הזכויות שמורות.</p>
+        </div>
+    </footer>
+</body>
+
+</html>

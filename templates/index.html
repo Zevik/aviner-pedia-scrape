@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}דף הבית{% endblock %}
+
+{% block content %}
+<h1>תפריט ראשי</h1>
+<div class="card-grid section-grid">
+    {% for sec in sections %}
+    <a href="/section/{{ sec.section }}" class="card section-card">
+        <h3>{{ sec.section }}</h3>
+        <p>{{ sec.article_count }} פריטים</p>
+    </a>
+    {% endfor %}
+</div>
+
+<h1>קטגוריות מובילות</h1>
+<div class="card-grid">
+    {% for cat in categories %}
+    <a href="/category/{{ cat.name }}" class="card">
+        <h3>{{ cat.name }}</h3>
+        <p>{{ cat.article_count }} מאמרים</p>
+    </a>
+    {% endfor %}
+</div>
+{% endblock %}
